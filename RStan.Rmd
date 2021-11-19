@@ -1,0 +1,112 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## set up for stan
+```{r setup, results="hide", message=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  dev = "png",
+  dpi = 150,
+  fig.align = "center",
+  comment = NA,
+  cache=TRUE
+)
+library(rstan)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(bayesplot)
+theme_set(bayesplot::theme_default())
+# seed for R's pseudo-RNGs (not Stan's)
+set.seed(1123)
+```
+
+
+```{r}
+mu     <- c(-2.75, 2.75);
+sigma  <- c(1, 1);
+lambda <- 0.4
+```
+
+
+```{r}
+set.seed(689934)
+
+N <- 1000
+z <- rbinom(N, 1, lambda) + 1;
+y <- rnorm(N, mu[z], sigma[z]);
+```
+
+```{r}
+library(rstan)
+```
+
+```{r}
+rstan_options(auto_write = TRUE)
+stan_rdump(c("N", "y"), file="mix.data.R")
+```
+
+```{r}
+writeLines(readLines("gauss_mix.stan"))
+```
+
+```{r}
+input_data <- read_rdump("mix.data.R")
+
+degenerate_fit <- stan(file='gauss_mix.stan', data=input_data,
+                       chains=4, seed=483892929, refresh=2000)
+```
+
+```{r}
+print(degenerate_fit)
+```
+
+```{r}
+c_light_trans <- c("#DCBCBCBF")
+c_light_highlight_trans <- c("#C79999BF")
+c_mid_trans <- c("#B97C7CBF")
+c_mid_highlight_trans <- c("#A25050BF")
+c_dark_trans <- c("#8F2727BF")
+c_dark_highlight_trans <- c("#7C0000BF")
+
+params1 <- as.data.frame(extract(degenerate_fit, permuted=FALSE)[,1,])
+params2 <- as.data.frame(extract(degenerate_fit, permuted=FALSE)[,2,])
+params3 <- as.data.frame(extract(degenerate_fit, permuted=FALSE)[,3,])
+params4 <- as.data.frame(extract(degenerate_fit, permuted=FALSE)[,4,])
+
+par(mar = c(4, 4, 0.5, 0.5))
+plot(params1$"mu[1]", params1$"mu[2]", col=c_dark_highlight_trans, pch=16, cex=0.8,
+     xlab="mu1", xlim=c(-3, 3), ylab="mu2", ylim=c(-3, 3))
+points(params2$"mu[1]", params2$"mu[2]", col=c_dark_trans, pch=16, cex=0.8)
+points(params3$"mu[1]", params3$"mu[2]", col=c_mid_highlight_trans, pch=16, cex=0.8)
+points(params4$"mu[1]", params4$"mu[2]", col=c_mid_trans, pch=16, cex=0.8)
+lines(0.08*(1:100) - 4, 0.08*(1:100) - 4, col="grey", lw=2)
+legend("topright", c("Chain 1", "Chain 2", "Chain 3", "Chain 4"),
+       fill=c(c_dark_highlight_trans, c_dark_trans,
+              c_mid_highlight_trans, c_mid_trans), box.lty=0, inset=0.0005)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
